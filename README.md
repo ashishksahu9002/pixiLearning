@@ -19,3 +19,25 @@
 4. Set its anchor to center (`0.5, 0.5`).  
 5. Position it at the center of the screen.  
 6. Add it to the stage. 
+
+---
+
+**Topic:** Containers & Transforms  
+
+---
+
+## 🔑 Concepts Learned
+- **`Container`** → Groups multiple sprites into one unit.  
+- **Transforms** → `position`, `rotation`, `scale`.  
+- **Hierarchy** → child sprites inherit parent transformations.  
+- **`app.ticker`** → Game loop for continuous updates.  
+
+---
+
+## 📝 Task
+1. Create a `Container` named `group`.  
+2. Add **3 bunny sprites** inside the container.  
+3. Position them horizontally (-120, 0, +120).  
+4. Center the container on screen.  
+5. Rotate the container using `app.ticker`.  
+6. Add a `Text` UI showing current rotation in degrees. 
