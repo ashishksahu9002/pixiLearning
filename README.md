@@ -82,3 +82,34 @@ The canvas shows:
 - Each click on the circle increases the score  
 
 ---
+
+**Topic:** Pointer Events & Drag/Drop  
+
+---
+
+## 🔑 Concepts Learned
+- **`eventMode`** → enables interactivity (`"static"` or `"dynamic"` in v7, replaces old `.interactive = true`).  
+- **Pointer Events** → `pointerdown`, `pointermove`, `pointerup`, `pointerupoutside`.  
+- **Dragging Pattern** → 
+  - On `pointerdown`: mark sprite as dragging.  
+  - On `pointermove`: update position if dragging.  
+  - On `pointerup` or `pointerupoutside`: stop dragging.  
+- **Cursor Styles** → `sprite.cursor = "pointer"` shows a hand icon on hover.  
+
+---
+
+## 📝 Task
+1. Load **`bunny.png`**.  
+2. Add a bunny sprite to the center of the screen.  
+3. Make the bunny **draggable** with the mouse.  
+   - Hold left-click to drag.  
+   - Release mouse to drop.  
+   - If released outside canvas, stop dragging gracefully.  
+4. Change the cursor style on hover.  
+
+---
+
+## ✅ Result
+You can click and drag the bunny around the canvas, and it drops smoothly when released.  
+
+---
