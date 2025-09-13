@@ -22,6 +22,11 @@
 
 ---
 
+## ✅ Result
+When you open the page, you should see a **bunny sprite centered** on a black canvas.  
+
+---
+
 **Topic:** Containers & Transforms  
 
 ---
@@ -41,3 +46,34 @@
 4. Center the container on screen.  
 5. Rotate the container using `app.ticker`.  
 6. Add a `Text` UI showing current rotation in degrees. 
+
+---
+
+## ✅ Result
+Three bunnies rotate around the center. A text label displays the container’s rotation angle in degrees.
+
+---
+
+**Topic:** Graphics & Text  
+
+---
+
+## 🔑 Concepts Learned
+- **`Graphics`** → Draw shapes (rect, circle, line).  
+- **`Text`** → Display text on screen.  
+- **UI layering** → Mix shapes and sprites.  
+
+---
+
+## 📝 Task
+1. Draw a background bar (rectangle).  
+2. Draw a red circle.  
+3. Add a score `Text` counter at top-left.  
+4. Update the score text on click.  
+
+---
+
+## ✅ Result
+Canvas shows a bar, a circle, and a score label. Clicking increases the score.  
+
+---
