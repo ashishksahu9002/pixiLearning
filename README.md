@@ -59,21 +59,26 @@ Three bunnies rotate around the center. A text label displays the container’s 
 ---
 
 ## 🔑 Concepts Learned
-- **`Graphics`** → Draw shapes (rect, circle, line).  
-- **`Text`** → Display text on screen.  
-- **UI layering** → Mix shapes and sprites.  
+- **`PIXI.Graphics`** → draw shapes (rectangles, circles, polygons, lines).  
+- **`PIXI.Text`** → render dynamic text for UI.  
+- **Events on Graphics** → shapes can be interactive like sprites.  
+- **Scene layering** → combine sprites, shapes, and text together.  
 
 ---
 
 ## 📝 Task
-1. Draw a background bar (rectangle).  
-2. Draw a red circle.  
-3. Add a score `Text` counter at top-left.  
-4. Update the score text on click.  
+1. Draw a **blue rectangle** at the top of the screen (like a HUD bar).  
+2. Draw a **red circle** in the center of the screen.  
+3. Add a **score counter** (`Score: 0`) in the top-left corner.  
+4. Make the circle clickable → each click increases the score by 1 and updates the text.  
 
 ---
 
 ## ✅ Result
-Canvas shows a bar, a circle, and a score label. Clicking increases the score.  
+The canvas shows:  
+- A blue bar at the top  
+- A red circle in the middle  
+- A score label in the top-left  
+- Each click on the circle increases the score  
 
 ---
