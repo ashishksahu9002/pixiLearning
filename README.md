@@ -113,3 +113,37 @@ The canvas shows:
 You can click and drag the bunny around the canvas, and it drops smoothly when released.  
 
 ---
+
+**Topic:** Ticker & Animation  
+
+---
+
+## 🔑 Concepts Learned
+- **`app.ticker`** → PixiJS’s built-in game loop that runs every frame.  
+- **`delta`** → multiplier that compensates for frame rate differences (≈1 at 60 FPS).  
+- **Frame-rate independence** → multiply movement by `delta` for consistent motion.  
+- **Velocity pattern** → update position with `vx`, `vy` each frame.  
+- **Basic collision** → check edges and invert velocity for bounce effects.  
+- **UI controls** → adjust speed in real time with sliders or keyboard input.  
+
+---
+
+## 📝 Task
+1. Load `bunny.png`.  
+2. Add a bunny sprite to the canvas.  
+3. Give it velocity values `vx`, `vy`.  
+4. Update position every frame inside `app.ticker`.  
+5. Bounce the bunny off edges by inverting velocity when it hits a boundary.  
+6. Add a speed slider (`<input type="range">`) or keyboard controls to adjust speed.  
+7. Display the current speed multiplier in a `PIXI.Text` element.  
+
+---
+
+## ✅ Result
+- The bunny moves smoothly across the canvas.  
+- It bounces when hitting the edges.  
+- Speed can be changed via UI or keyboard.  
+- Movement remains consistent regardless of FPS.  
+
+---
+
