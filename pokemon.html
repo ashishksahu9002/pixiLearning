@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PixiJS - Trainer + Random Encounters</title>
+  <style>
+    body { margin: 0; background: #111; color: #eee; font-family: system-ui, Arial; }
+    #game { position: absolute; left: 12px; top: 12px; }
+    #info { position: absolute; left: 12px; bottom: 12px; color: #ddd; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="info">Use arrow keys or WASD to move. Step on green tiles (grass) to possibly trigger encounters.</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.0/pixi.min.js"></script>
+  <script>
+    // === Config ===
+    const TILE = 32;                    // tile size in pixels
+    const MAP_W = 20, MAP_H = 15;       // map dimensions (tiles)
+    const MOVE_DURATION = 140;          // ms to move one tile
+    const ENCOUNTER_CHANCE = 0.12;      // 12% chance when stepping on grass
+
+    // Tile types
+    // 0 = ground, 1 = grass (encounterable), 2 = wall/impassable
+    const simpleMap = [
+      // 20 columns per row, 15 rows
+      // top border of walls
+      [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+      [2,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+      [2,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,2],
+      [2,0,0,0,2,2,2,0,1,1,1,1,1,0,0,0,2,2,0,2],
+      [2,0,0,0,2,0,2,0,0,0,0,0,1,0,0,0,2,0,0,2],
+      [2,0,0,0,2,0,2,0,0,0,0,0,1,0,0,0,2,0,0,2],
+      [2,0,0,0,2,0,2,0,0,1,1,0,1,0,0,0,2,0,0,2],
+      [2,0,0,0,2,0,2,0,0,1,1,0,1,0,0,0,2,0,0,2],
+      [2,0,0,0,2,0,0,0,0,1,1,0,1,0,0,0,2,0,0,2],
+      [2,0,0,0,0,0,0,0,0,1,1,0,0,0,2,0,0,0,0,2],
+      [2,0,0,0,0,0,0,0,0,1,1,1,1,0,2,0,0,0,0,2],
+      [2,0,0,0,0,0,0,2,2,2,0,0,1,0,2,0,0,0,0,2],
+      [2,0,0,0,0,0,0,2,0,0,0,0,1,0,2,0,0,0,0,2],
+      [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+      [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+    ];
+
+    // === Pixi setup ===
+    const app = new PIXI.Application({
+      width: MAP_W * TILE,
+      height: MAP_H * TILE,
+      backgroundColor: 0x87ceeb // sky-ish to make tiles stand out
+    });
+    document.getElementById('game').appendChild(app.view);
+
+    // Container for the map
+    const world = new PIXI.Container();
+    app.stage.addChild(world);
+
+    // Draw tiles
+    const tileContainer = new PIXI.Container();
+    world.addChild(tileContainer);
+
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        const t = (simpleMap[y] && simpleMap[y][x]) ?? 0;
+        const g = new PIXI.Graphics();
+        g.beginFill(0xaaaaaa); // default ground
+        if (t === 0) g.beginFill(0xd4caa8);          // plain ground (dirt)
+        if (t === 1) g.beginFill(0x5fbf3f);          // grass (green)
+        if (t === 2) g.beginFill(0x5b5b5b);          // wall (dark)
+        g.drawRect(0, 0, TILE, TILE);
+        g.endFill();
+
+        // optional: add a subtle border
+        g.lineStyle(1, 0x333333, 0.25);
+        g.drawRect(0, 0, TILE, TILE);
+
+        g.x = x * TILE;
+        g.y = y * TILE;
+        tileContainer.addChild(g);
+      }
+    }
+
+    // Simple player sprite (circle) — in practice replace with texture / AnimatedSprite
+    const player = new PIXI.Graphics();
+    player.beginFill(0x2222ff);
+    player.drawRect(0, 0, TILE * 0.8, TILE * 0.8);
+    player.endFill();
+    player.pivot.set((TILE*0.8)/2, (TILE*0.8)/2); // center pivot for nicer movement
+    player.x = TILE * 2 + TILE/2;
+    player.y = TILE * 2 + TILE/2;
+    player.speed = 2; // not used — tile based
+    app.stage.addChild(player);
+
+    // Player logical position in tiles
+    let playerTileX = 2;
+    let playerTileY = 2;
+    player.x = playerTileX * TILE + TILE/2;
+    player.y = playerTileY * TILE + TILE/2;
+
+    // Movement state
+    let moving = false;
+    let moveStart = 0;
+    let moveFrom = {x: 0, y: 0}, moveTo = {x: 0, y: 0};
+
+    // Input handling
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+      keys[e.key.toLowerCase()] = true;
+      e.preventDefault();
+    });
+    window.addEventListener('keyup', (e) => {
+      keys[e.key.toLowerCase()] = false;
+      e.preventDefault();
+    });
+
+    function canMoveTo(tx, ty) {
+      // bounds
+      if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) return false;
+      const t = simpleMap[ty][tx];
+      if (t === 2) return false; // wall
+      return true;
+    }
+
+    // Called when player finishes a step onto a tile
+    function onLandTile(tx, ty) {
+      const t = simpleMap[ty][tx];
+      if (t === 1) {
+        // grass tile — roll for encounter
+        if (Math.random() < ENCOUNTER_CHANCE) {
+          triggerEncounter(tx, ty);
+        } else {
+          showTempText("No encounter (phew!)", 800);
+        }
+      }
+    }
+
+    // Temporary on-screen message
+    function showTempText(text, duration=900) {
+      const txt = new PIXI.Text(text, {fontFamily: 'Arial', fontSize: 14, fill: 0xffffff, stroke: 0x000000, strokeThickness: 3});
+      txt.x = 8;
+      txt.y = app.renderer.height - 28;
+      app.stage.addChild(txt);
+      setTimeout(()=> {
+        app.stage.removeChild(txt);
+      }, duration);
+    }
+
+    function triggerEncounter(tx, ty) {
+      // Simple placeholder for encounter: grey overlay + text + cancel
+      const overlay = new PIXI.Graphics();
+      overlay.beginFill(0x000000, 0.6);
+      overlay.drawRect(0,0,app.renderer.width, app.renderer.height);
+      overlay.endFill();
+      overlay.interactive = true;
+
+      const txt = new PIXI.Text("A wild Pokémon appeared!\nPress Z/X or click to continue.", {
+        fontFamily:'Arial', fontSize: 20, fill: 0xffee88, align: 'center',
+        stroke: 0x000000, strokeThickness: 4
+      });
+      txt.anchor.set(0.5);
+      txt.x = app.renderer.width/2;
+      txt.y = app.renderer.height/2;
+
+      app.stage.addChild(overlay);
+      app.stage.addChild(txt);
+
+      function endEncounter() {
+        app.stage.removeChild(overlay);
+        app.stage.removeChild(txt);
+        window.removeEventListener('keydown', keyHandler);
+        showTempText("Returned to overworld", 900);
+      }
+      function keyHandler(e) {
+        if (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'x' || e.key === ' ') {
+          endEncounter();
+        }
+      }
+      window.addEventListener('keydown', keyHandler);
+
+      overlay.on('pointerdown', endEncounter);
+    }
+
+    // Movement step (initiates tween)
+    function startMove(dirX, dirY) {
+      if (moving) return;
+      const tx = playerTileX + dirX;
+      const ty = playerTileY + dirY;
+      if (!canMoveTo(tx, ty)) return;
+      moving = true;
+      moveStart = performance.now();
+      moveFrom.x = playerTileX * TILE + TILE/2;
+      moveFrom.y = playerTileY * TILE + TILE/2;
+      moveTo.x = tx * TILE + TILE/2;
+      moveTo.y = ty * TILE + TILE/2;
+      playerTileX = tx;
+      playerTileY = ty;
+      // after movement ends we will call onLandTile
+    }
+
+    // Game loop for smooth movement
+    app.ticker.add((delta) => {
+      // If not moving, attempt to start a move based on input
+      if (!moving) {
+        // Input priority: arrows then WASD
+        if (keys['arrowup'] || keys['w']) startMove(0, -1);
+        else if (keys['arrowdown'] || keys['s']) startMove(0, 1);
+        else if (keys['arrowleft'] || keys['a']) startMove(-1, 0);
+        else if (keys['arrowright'] || keys['d']) startMove(1, 0);
+      } else {
+        // progress movement
+        const t = Math.min(1, (performance.now() - moveStart) / MOVE_DURATION);
+        // simple ease-out: t' = 1 - (1-t)^2
+        const te = 1 - (1 - t)*(1 - t);
+        player.x = moveFrom.x + (moveTo.x - moveFrom.x) * te;
+        player.y = moveFrom.y + (moveTo.y - moveFrom.y) * te;
+        if (t >= 1) {
+          moving = false;
+          // Snap to tile
+          player.x = moveTo.x;
+          player.y = moveTo.y;
+          onLandTile(playerTileX, playerTileY);
+        }
+      }
+    });
+
+    // Center camera? For small map we keep static. If you want to move camera, wrap world in a container and offset.
+
+    // Draw a small HUD that shows player's tile
+    const hud = new PIXI.Text('', {fontFamily: 'monospace', fontSize: 12, fill: 0xffffff});
+    hud.x = 6;
+    hud.y = 6;
+    app.stage.addChild(hud);
+    app.ticker.add(() => {
+      hud.text = `Tile: (${playerTileX}, ${playerTileY})  Mode: ${moving ? 'moving' : 'idle'}`;
+    });
+
+    // Optional: click-to-move (tile-based)
+    app.view.addEventListener('click', (ev) => {
+      const rect = app.view.getBoundingClientRect();
+      const cx = ev.clientX - rect.left;
+      const cy = ev.clientY - rect.top;
+      const tx = Math.floor(cx / TILE);
+      const ty = Math.floor(cy / TILE);
+      // simple direct: if clicked adjacent tile, move to it
+      if (!moving && Math.abs(tx - playerTileX) + Math.abs(ty - playerTileY) === 1) {
+        startMove(tx - playerTileX, ty - playerTileY);
+      }
+    });
+
+    // Prevent arrow keys from scrolling
+    window.addEventListener("keydown", function(e) {
+      if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(e.code) > -1) {
+        e.preventDefault();
+      }
+    }, false);
+
+  </script>
+</body>
+</html>
